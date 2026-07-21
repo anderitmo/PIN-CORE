@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>PIN://CORE — Cyber-Pinball System</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Matter.js Physics Engine -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+</head>
+<body class="crt-enabled">
+    <!-- CRT and Scanline overlays -->
+    <div class="scanlines"></div>
+    <div class="crt-vignette"></div>
+
+    <div id="game-container">
+        <!-- START MENU SCREEN -->
+        <div id="start-menu" class="menu-screen active">
+            <h1 class="glitch-text" data-text="PIN://CORE">PIN://CORE</h1>
+            <div class="subtitle">DECIPHER_THE_SYSTEM_MEMORY</div>
+
+            <div class="menu-options">
+                <button id="btn-continue" class="menu-btn disabled">CONTINUE (SETOR <span id="continue-sector">--</span>)</button>
+                <button id="btn-new-game" class="menu-btn">NEW GAME</button>
+                <button id="btn-achievements" class="menu-btn">ACHIEVEMENTS</button>
+                <button id="btn-statistics" class="menu-btn">STATISTICS</button>
+                <button id="btn-settings" class="menu-btn">SETTINGS</button>
+                <button id="btn-rankings" class="menu-btn">LOCAL RANKING</button>
+            </div>
+            <div class="footer-note">PRESS START / ENTER OR CLICK TO CHOOSE</div>
+        </div>
+
+        <!-- SETTINGS SCREEN -->
+        <div id="settings-menu" class="menu-screen hidden">
+            <h2>SETTINGS_CONFIGURATION</h2>
+            <div class="settings-grid">
+                <div class="setting-row">
+                    <label>SOUND EFFECTS (SFX)</label>
+                    <button id="toggle-sound" class="toggle-btn active">ON</button>
+                </div>
+                <div class="setting-row">
+                    <label>SYNTH MUSIC</label>
+                    <button id="toggle-music" class="toggle-btn active">ON</button>
+                </div>
+                <div class="setting-row">
+                    <label>PARTICLE EFFECTS</label>
+                    <button id="toggle-particles" class="toggle-btn active">ON</button>
+                </div>
+                <div class="setting-row">
+                    <label>NEON GLOW EFFECT</label>
+                    <button id="toggle-glow" class="toggle-btn active">ON</button>
+                </div>
+                <div class="setting-row">
+                    <label>CRT OVERLAY FILTER</label>
+                    <button id="toggle-crt" class="toggle-btn active">ON</button>
+                </div>
+                <div class="setting-row">
+                    <label>SHOW FPS COUNTER</label>
+                    <button id="toggle-fps" class="toggle-btn">OFF</button>
+                </div>
+                <div class="setting-row">
+                    <label>LANGUAGE / IDIOMA</label>
+                    <button id="btn-language" class="toggle-btn">PT-BR</button>
+                </div>
+            </div>
+            <button id="btn-settings-back" class="menu-btn back-btn">RETURN TO CORE</button>
+        </div>
+
+        <!-- ACHIEVEMENTS SCREEN -->
+        <div id="achievements-menu" class="menu-screen hidden">
+            <h2>ACHIEVEMENTS_LOG</h2>
+            <div class="achievements-info">
+                Unlocked: <span id="achievements-unlocked-count">0</span> / 100+
+            </div>
+            <div class="scroll-container" id="achievements-list">
+                <!-- Achievements injected by script -->
+            </div>
+            <button id="btn-achievements-back" class="menu-btn back-btn">RETURN TO CORE</button>
+        </div>
+
+        <!-- STATISTICS SCREEN -->
+        <div id="statistics-menu" class="menu-screen hidden">
+            <h2>STATISTICS_LOG</h2>
+            <div class="scroll-container" id="statistics-list">
+                <!-- Stats injected by script -->
+            </div>
+            <button id="btn-statistics-back" class="menu-btn back-btn">RETURN TO CORE</button>
+        </div>
+
+        <!-- RANKINGS SCREEN -->
+        <div id="rankings-menu" class="menu-screen hidden">
+            <h2>LOCAL_CORE_RANKING</h2>
+            <div class="ranking-table">
+                <div class="ranking-header">
+                    <span>#</span>
+                    <span>OPERATOR</span>
+                    <span>SCORE</span>
+                    <span>SEED</span>
+                    <span>TIME</span>
+                </div>
+                <div id="ranking-list">
+                    <!-- Rankings injected by script -->
+                </div>
+            </div>
+            <button id="btn-rankings-back" class="menu-btn back-btn">RETURN TO CORE</button>
+        </div>
+
+        <!-- GAMEPLAY SCREEN -->
+        <div id="gameplay-container" class="hidden">
+            <!-- HUD -->
+            <div id="hud">
+                <div class="hud-item">
+                    <span class="label">SCORE</span>
+                    <span id="score-val" class="value glow-white">00000000</span>
+                </div>
+                <div class="hud-item">
+                    <span class="label">COMBO</span>
+                    <span id="combo-val" class="value glow-cyan">x1</span>
+                </div>
+                <div class="hud-item">
+                    <span class="label">ENERGY</span>
+                    <div class="energy-bar-container">
+                        <div id="energy-fill" style="width: 0%;"></div>
+                    </div>
+                    <span id="energy-val" class="value glow-green">0%</span>
+                </div>
+                <div class="hud-item">
+                    <span class="label">BALLS</span>
+                    <span id="balls-val" class="value glow-magenta">3</span>
+                </div>
+                <div class="hud-item">
+                    <span class="label">LEVEL</span>
+                    <span id="level-val" class="value glow-cyan">SETOR 01: BOOT</span>
+                </div>
+            </div>
+
+            <!-- Objectives overlay -->
+            <div id="objectives-overlay">
+                <div class="sector-title" id="sector-title-overlay">SETOR 01 — BOOT</div>
+                <div id="objectives-list">
+                    <!-- Dynamic objectives with check boxes -->
+                </div>
+            </div>
+
+            <!-- Skills & Ball select Overlay -->
+            <div id="skill-tray">
+                <div class="skill-slot" id="skill-slot-1">
+                    <span class="skill-key">Q</span>
+                    <span class="skill-name">SKILL 1</span>
+                </div>
+                <div class="skill-slot" id="skill-slot-2">
+                    <span class="skill-key">E</span>
+                    <span class="skill-name">SKILL 2</span>
+                </div>
+                <div class="ball-selector-tray">
+                    <span class="tray-label">BALL:</span>
+                    <select id="gameplay-ball-select">
+                        <option value="normal">NORMAL</option>
+                        <option value="heavy">HEAVY</option>
+                        <option value="plasma">PLASMA</option>
+                        <option value="ghost">GHOST</option>
+                        <option value="quantum">QUANTUM</option>
+                        <option value="cube">CUBE</option>
+                        <option value="triangle">TRIANGLE</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Active events notifier -->
+            <div id="event-announcer" class="hidden">
+                <div id="event-text">POWER SURGE</div>
+            </div>
+
+            <!-- Main Canvas -->
+            <canvas id="game-canvas" width="800" height="900"></canvas>
+
+            <!-- Playback / Replay Overlay -->
+            <div id="replay-btn-container">
+                <button id="btn-save-replay" class="replay-btn">SAVE LAST 30s REPLAY</button>
+                <button id="btn-play-replay" class="replay-btn">PLAY REPLAY</button>
+                <span id="replay-indicator" class="hidden">● REPLAYING</span>
+            </div>
+
+            <!-- Pause menu overlay -->
+            <div id="pause-overlay" class="hidden">
+                <h2>SYSTEM_PAUSED</h2>
+                <div class="pause-options">
+                    <button id="btn-resume" class="menu-btn">RESUME</button>
+                    <button id="btn-abort" class="menu-btn">ABORT MISSION</button>
+                </div>
+            </div>
+
+            <!-- Seed Display -->
+            <div id="seed-display">SEED: <span id="current-seed-val">#9AF231BC</span></div>
+            <div id="fps-display" class="hidden">FPS: --</div>
+        </div>
+
+        <!-- BOSS INCOMING OVERLAY -->
+        <div id="boss-overlay" class="hidden">
+            <h1 class="boss-title glow-magenta">BOSS INCOMING</h1>
+            <h2 id="boss-name-overlay" class="glow-white">FIREWALL</h2>
+            <div class="boss-hp-bar">
+                <div id="boss-hp-fill" style="width: 100%;"></div>
+            </div>
+            <div class="boss-subtext glow-cyan">DANGER: ACCESS DENIED</div>
+        </div>
+
+        <!-- SYSTEM RESTORED FINAL SCREEN -->
+        <div id="victory-screen" class="menu-screen hidden">
+            <div class="terminal-text" id="terminal-text-area">
+                SYSTEM RESTORED
+                <br><br>
+                THANK YOU, OPERATOR.
+            </div>
+            <button id="btn-victory-back" class="menu-btn">RETURN TO CORE</button>
+        </div>
+    </div>
+
+    <!-- Main Game Script -->
+    <script type="module" src="src/main.js"></script>
+</body>
+</html>
