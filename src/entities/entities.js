@@ -51,22 +51,22 @@ export class Ball {
         this.destroyed = false;
 
         // Custom mass / physics modifiers depending on chosen Ball unlocks
-        let density = 0.001;
-        let restitution = 0.5;
+        let density = 0.0012;
+        let restitution = 0.55;
         let friction = 0.01;
 
         if (type === "heavy") {
-            density = 0.003; // Heavy steel-like physics
-            restitution = 0.3;
+            density = 0.0035; // Heavy steel-like physics
+            restitution = 0.25;
         } else if (type === "plasma") {
-            density = 0.0008; // High speed
-            restitution = 0.7;
+            density = 0.0009; // High speed
+            restitution = 0.75;
         } else if (type === "ghost") {
-            density = 0.0007;
+            density = 0.0008;
             restitution = 0.6;
         } else if (type === "quantum") {
-            density = 0.0009;
-            restitution = 0.55;
+            density = 0.001;
+            restitution = 0.65;
         } else if (type === "cube" || type === "triangle") {
             friction = 0.05;
         }
@@ -114,8 +114,6 @@ export class Ball {
                 30
             ));
         }
-
-        // Apply magnetic forces or portals handling inside actual game update
     }
 
     draw(ctx) {
@@ -210,9 +208,9 @@ export class Ball {
     }
 }
 
-// 2. FLIPPER ENTITY
+// 2. FLIPPER ENTITY (Polished and symmetrical rotation limits)
 export class Flipper {
-    constructor(x, y, length = 120, height = 20, isLeft = true, type = "normal") {
+    constructor(x, y, length = 110, height = 20, isLeft = true, type = "normal") {
         this.x = x;
         this.y = y;
         this.length = length;
@@ -223,17 +221,24 @@ export class Flipper {
 
         const { Bodies, Body, Constraint, World } = Matter;
 
+        // Perfect symmetrically aligned flippers positions
+        // Rest state angles:
+        // Left Flipper points slightly downwards (0.35 rad) and rotates upwards (to -0.35 rad)
+        // Right Flipper points symmetrically downwards (Math.PI - 0.35 rad) and rotates upwards (to Math.PI + 0.35 rad)
+        this.restAngle = isLeft ? 0.35 : Math.PI - 0.35;
+        this.activeAngle = isLeft ? -0.35 : Math.PI + 0.35;
+
         // Flipper body shape
         const offset = length / 2;
         this.body = Bodies.rectangle(isLeft ? x + offset : x - offset, y, length, height, {
-            density: 0.05,
-            friction: 0.1,
-            restitution: 0.1,
+            density: 0.08,
+            friction: 0.05,
+            restitution: 0.15,
             label: isLeft ? "flipper_left" : "flipper_right"
         });
 
         // Hinge point for physical swing pivot
-        this.pivot = Bodies.circle(x, y, 5, { isStatic: true, isSensor: true });
+        this.pivot = Bodies.circle(x, y, 4, { isStatic: true, isSensor: true });
 
         // High stiffness pivot constraints keeping it pinned
         this.constraint = Constraint.create({
@@ -249,57 +254,54 @@ export class Flipper {
         physics.addBody(this.pivot, null);
         World.add(physics.world, this.constraint);
 
-        // Rotation lock limit anchors (prevent over-rotation)
-        const limitAng = 0.55; // Radians (~30 degrees)
-        this.minAngle = isLeft ? -0.15 : -Math.PI + 0.15;
-        this.maxAngle = isLeft ? limitAng : -Math.PI - limitAng;
-
         // Set initial orientation
-        Body.setAngle(this.body, isLeft ? -0.15 : Math.PI + 0.15);
+        Body.setAngle(this.body, this.restAngle);
     }
 
     update(deltaTime) {
         const { Body } = Matter;
-        // Apply torque / angular velocity to flip up or drop down
-        const flipSpeed = 0.22;
+        // High rotational velocity update to avoid delays
+        const speed = 0.25;
 
         if (this.active) {
-            // Swing Up
+            // Rotates upwards (counter-clockwise for left, clockwise for right)
             if (this.isLeft) {
-                if (this.body.angle < 0.55) {
-                    Body.setAngularVelocity(this.body, flipSpeed);
+                if (this.body.angle > this.activeAngle) {
+                    Body.setAngle(this.body, Math.max(this.activeAngle, this.body.angle - speed));
+                    Body.setAngularVelocity(this.body, -speed);
                 } else {
-                    Body.setAngle(this.body, 0.55);
+                    Body.setAngle(this.body, this.activeAngle);
                     Body.setAngularVelocity(this.body, 0);
                 }
             } else {
-                if (this.body.angle > -Math.PI - 0.55) {
-                    Body.setAngularVelocity(this.body, -flipSpeed);
+                if (this.body.angle < this.activeAngle) {
+                    Body.setAngle(this.body, Math.min(this.activeAngle, this.body.angle + speed));
+                    Body.setAngularVelocity(this.body, speed);
                 } else {
-                    Body.setAngle(this.body, -Math.PI - 0.55);
+                    Body.setAngle(this.body, this.activeAngle);
                     Body.setAngularVelocity(this.body, 0);
                 }
             }
         } else {
-            // Fall back down
+            // Falls back down
             if (this.isLeft) {
-                if (this.body.angle > -0.15) {
-                    Body.setAngularVelocity(this.body, -flipSpeed * 0.5);
+                if (this.body.angle < this.restAngle) {
+                    Body.setAngle(this.body, Math.min(this.restAngle, this.body.angle + speed * 0.5));
+                    Body.setAngularVelocity(this.body, speed * 0.5);
                 } else {
-                    Body.setAngle(this.body, -0.15);
+                    Body.setAngle(this.body, this.restAngle);
                     Body.setAngularVelocity(this.body, 0);
                 }
             } else {
-                if (this.body.angle < -Math.PI + 0.15) {
-                    Body.setAngularVelocity(this.body, flipSpeed * 0.5);
+                if (this.body.angle > this.restAngle) {
+                    Body.setAngle(this.body, Math.max(this.restAngle, this.body.angle - speed * 0.5));
+                    Body.setAngularVelocity(this.body, -speed * 0.5);
                 } else {
-                    Body.setAngle(this.body, -Math.PI + 0.15);
+                    Body.setAngle(this.body, this.restAngle);
                     Body.setAngularVelocity(this.body, 0);
                 }
             }
         }
-
-        // Apply TURBO features (instant extreme physical push) or magnetic lock in parent controller
     }
 
     draw(ctx) {
@@ -339,11 +341,11 @@ export class Flipper {
     }
 
     collision(other) {
-        // Boost reflection power on flipper collision if turbo type
+        // Boost reflection power on flipper collision if active
         if (this.active && other && other.body && other.body.label === "ball") {
-            let mult = 1.25;
-            if (this.type === "turbo") mult = 1.95;
-            if (this.type === "magnetic") mult = 0.85; // Grabs slightly
+            let mult = 1.35;
+            if (this.type === "turbo") mult = 2.1;
+            if (this.type === "magnetic") mult = 0.9; // Grabs slightly
 
             Matter.Body.setVelocity(other.body, {
                 x: other.body.velocity.x * mult,
@@ -375,7 +377,7 @@ export class Bumper {
         const { Bodies } = Matter;
         this.body = Bodies.circle(x, y, radius, {
             isStatic: true,
-            restitution: type === "explosive" ? 1.8 : 1.2,
+            restitution: type === "explosive" ? 1.8 : 1.25,
             label: "bumper"
         });
 

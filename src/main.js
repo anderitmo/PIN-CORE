@@ -29,6 +29,7 @@ class GameEngine {
         this.portals = [];
         this.boss = null;
         this.particles = [];
+        this.staticGuides = []; // Store custom launch channel guide walls
 
         // Active Random Event status
         this.activeEvent = null;
@@ -416,6 +417,7 @@ class GameEngine {
         this.bumpers = [];
         this.portals = [];
         this.particles = [];
+        this.staticGuides = [];
         this.boss = null;
 
         const data = levels.getSector(sectorId);
@@ -426,12 +428,42 @@ class GameEngine {
 
         // Installs flippers
         const flipperType = StorageManager.getProfile().selectedFlipper || "normal";
-        this.flippers.push(new Flipper(260, 750, 110, 20, true, flipperType));
-        this.flippers.push(new Flipper(540, 750, 110, 20, false, flipperType));
+        this.flippers.push(new Flipper(250, 780, 115, 20, true, flipperType));
+        this.flippers.push(new Flipper(550, 780, 115, 20, false, flipperType));
 
-        // Plunger launcher guides
-        const launcherWall = Matter.Bodies.rectangle(740, 500, 10, 600, { isStatic: true });
-        physics.addBody(launcherWall, null);
+        // Plunger launcher channel walls and curved launch guide rails
+        // Launcher right partition
+        const partitionWall = Matter.Bodies.rectangle(740, 520, 10, 640, { isStatic: true });
+        physics.addBody(partitionWall, null);
+        this.staticGuides.push({ body: partitionWall, type: "wall" });
+
+        // Curved deflective ramp at the top of the launcher channel to deflect the ball into the table (leftward)
+        const curve1 = Matter.Bodies.rectangle(745, 140, 40, 10, { isStatic: true, angle: -Math.PI / 4 });
+        const curve2 = Matter.Bodies.rectangle(710, 90, 80, 10, { isStatic: true, angle: -Math.PI / 6 });
+        const topCeilingCurve = Matter.Bodies.rectangle(550, 40, 400, 10, { isStatic: true, angle: 0.05 }); // Subtle incline slide
+
+        physics.addBody(curve1, null);
+        physics.addBody(curve2, null);
+        physics.addBody(topCeilingCurve, null);
+        this.staticGuides.push({ body: curve1, type: "ramp" });
+        this.staticGuides.push({ body: curve2, type: "ramp" });
+        this.staticGuides.push({ body: topCeilingCurve, type: "ramp" });
+
+        // Slanted bottom guides right above the drain to guide the ball toward flippers
+        const leftIncline = Matter.Bodies.rectangle(110, 730, 240, 12, { isStatic: true, angle: Math.PI / 10 });
+        const rightIncline = Matter.Bodies.rectangle(690, 730, 240, 12, { isStatic: true, angle: -Math.PI / 10 });
+        physics.addBody(leftIncline, null);
+        physics.addBody(rightIncline, null);
+        this.staticGuides.push({ body: leftIncline, type: "incline" });
+        this.staticGuides.push({ body: rightIncline, type: "incline" });
+
+        // Slingshots with bounce power right above the flippers
+        const leftSlingshot = Matter.Bodies.rectangle(170, 650, 80, 16, { isStatic: true, angle: Math.PI / 5, restitution: 1.6, label: "slingshot" });
+        const rightSlingshot = Matter.Bodies.rectangle(630, 650, 80, 16, { isStatic: true, angle: -Math.PI / 5, restitution: 1.6, label: "slingshot" });
+        physics.addBody(leftSlingshot, this);
+        physics.addBody(rightSlingshot, this);
+        this.staticGuides.push({ body: leftSlingshot, type: "slingshot" });
+        this.staticGuides.push({ body: rightSlingshot, type: "slingshot" });
 
         // Load level bumpers mapping
         data.bumpers.forEach(b => {
@@ -478,7 +510,7 @@ class GameEngine {
         const selectedSkin = StorageManager.getProfile().selectedSkin || "default";
 
         // Spawn ball directly in launching plunger channel (x: 765, y: 780)
-        const ball = new Ball(765, 760, 12, selectedBallType, selectedSkin);
+        const ball = new Ball(765, 800, 12, selectedBallType, selectedSkin);
         this.balls.push(ball);
 
         // Keep HUD count matched
@@ -488,9 +520,9 @@ class GameEngine {
     launchPlungerBall() {
         // Apply immediate massive high upward impulse if ball sits inside channel
         this.balls.forEach(ball => {
-            if (ball.body.position.x > 745 && ball.body.position.y > 700) {
+            if (ball.body.position.x > 745 && ball.body.position.y > 650) {
                 audio.playSFX("charge");
-                Matter.Body.setVelocity(ball.body, { x: 0, y: -24 });
+                Matter.Body.setVelocity(ball.body, { x: -1.5, y: -28 }); // Strong upward launcher force with slight leftwards slant
             }
         });
     }
@@ -680,6 +712,22 @@ class GameEngine {
         });
     }
 
+    // Handles custom collision redirects (e.g. slingshots trigger)
+    collision(other) {
+        if (other && other.body && other.body.label === "ball") {
+            audio.playSFX("laser");
+            // Spawn dynamic spark particles on slingshot bounce
+            const pos = other.body.position;
+            for (let i = 0; i < 8; i++) {
+                this.particles.push(new Particle(
+                    pos.x, pos.y, "#ff007f", Math.random() * 4 + 2,
+                    (Math.random() - 0.5) * 6, (Math.random() - 0.5) * 6,
+                    30
+                ));
+            }
+        }
+    }
+
     update(deltaTime) {
         if (this.gameState !== "playing") return;
 
@@ -767,6 +815,12 @@ class GameEngine {
                     StorageManager.incrementStat("teleports", 1);
                 }
             });
+
+            // Prevent ball from falling back down the plunger launcher channel once it enters the main table (one-way gate barrier)
+            if (pos.x < 740 && pos.x > 720 && pos.y < 300) {
+                // Instantly apply slight leftward vector push to push it into the main area
+                Matter.Body.setVelocity(ball.body, { x: -4, y: ball.body.velocity.y });
+            }
 
             // Handle bottom drain ball loss
             if (pos.y > 830) {
@@ -899,6 +953,46 @@ class GameEngine {
             this.ctx.lineTo(this.canvas.width, y);
             this.ctx.stroke();
         }
+
+        // Draw custom launch channel guides & slanted ramp lanes
+        this.staticGuides.forEach(g => {
+            const pos = g.body.position;
+            const angle = g.body.angle;
+
+            this.ctx.save();
+            this.ctx.translate(pos.x, pos.y);
+            this.ctx.rotate(angle);
+
+            // Retro cyan/magenta glow style for board guides & rails
+            let glowColor = "rgba(0, 240, 255, 0.4)";
+            if (g.type === "slingshot") glowColor = "rgba(255, 0, 127, 0.8)";
+            if (g.type === "ramp") glowColor = "rgba(57, 255, 20, 0.5)";
+
+            this.ctx.strokeStyle = glowColor;
+            this.ctx.shadowColor = glowColor;
+            this.ctx.shadowBlur = 10;
+            this.ctx.lineWidth = g.type === "slingshot" ? 4 : 2;
+            this.ctx.fillStyle = g.type === "slingshot" ? "rgba(255, 0, 127, 0.15)" : "#020202";
+
+            const width = g.body.bounds.max.x - g.body.bounds.min.x;
+            const height = g.body.bounds.max.y - g.body.bounds.min.y;
+
+            this.ctx.beginPath();
+            if (g.type === "slingshot") {
+                // Draw a retro futuristic triangular shape for the slingshots bounce
+                this.ctx.moveTo(-35, -20);
+                this.ctx.lineTo(35, 0);
+                this.ctx.lineTo(-35, 20);
+                this.ctx.closePath();
+                this.ctx.fill();
+                this.ctx.stroke();
+            } else {
+                // Simple rectangular walls
+                this.ctx.rect(-width / 2, -height / 2, width, height);
+                this.ctx.stroke();
+            }
+            this.ctx.restore();
+        });
 
         // Draw bumpers
         this.bumpers.forEach(b => b.draw(this.ctx));

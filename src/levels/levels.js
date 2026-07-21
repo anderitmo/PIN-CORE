@@ -17,9 +17,12 @@ export const LEVEL_SECTORS = [
             { id: "score_10k", text: "Alcançar 10.000 pontos", target: 10000, progress: 0, completed: false }
         ],
         bumpers: [
-            { x: 300, y: 250, radius: 28, type: "normal" },
-            { x: 500, y: 250, radius: 28, type: "normal" },
-            { x: 400, y: 380, radius: 35, type: "multiplier" }
+            { x: 300, y: 220, radius: 28, type: "normal" },
+            { x: 500, y: 220, radius: 28, type: "normal" },
+            { x: 400, y: 350, radius: 35, type: "multiplier" },
+            // Extra interactive element
+            { x: 220, y: 310, radius: 24, type: "explosive" },
+            { x: 580, y: 310, radius: 24, type: "explosive" }
         ],
         obstacles: [],
         boss: { name: "SECURE_BOOT_FIREWALL", hp: 1200, x: 400, y: 150 }
@@ -37,11 +40,14 @@ export const LEVEL_SECTORS = [
             { id: "score_50k", text: "Alcançar 50.000 pontos", target: 50000, progress: 0, completed: false }
         ],
         bumpers: [
-            { x: 250, y: 200, radius: 25, type: "explosive" },
-            { x: 550, y: 200, radius: 25, type: "explosive" },
+            { x: 200, y: 180, radius: 25, type: "explosive" },
+            { x: 600, y: 180, radius: 25, type: "explosive" },
             { x: 400, y: 280, radius: 30, type: "normal" },
             { x: 250, y: 380, radius: 25, type: "multiplier" },
-            { x: 550, y: 380, radius: 25, type: "multiplier" }
+            { x: 550, y: 380, radius: 25, type: "multiplier" },
+            // Extra bumpers
+            { x: 320, y: 200, radius: 20, type: "explosive" },
+            { x: 480, y: 200, radius: 20, type: "explosive" }
         ],
         obstacles: [],
         boss: { name: "CORRUPTED_MEMORY_ALLOCATOR", hp: 1800, x: 400, y: 140 }
@@ -61,7 +67,10 @@ export const LEVEL_SECTORS = [
         bumpers: [
             { x: 400, y: 250, radius: 30, type: "magnetic" },
             { x: 200, y: 350, radius: 25, type: "normal" },
-            { x: 600, y: 350, radius: 25, type: "normal" }
+            { x: 600, y: 350, radius: 25, type: "normal" },
+            // Extra dynamic temporal decelerator and multiplier items
+            { x: 300, y: 180, radius: 22, type: "temporal" },
+            { x: 500, y: 180, radius: 22, type: "multiplier" }
         ],
         portals: [
             { x: 150, y: 200, targetX: 650, targetY: 450, label: "SOCKET_A" },
@@ -86,7 +95,10 @@ export const LEVEL_SECTORS = [
             { x: 400, y: 200, radius: 32, type: "temporal" },
             { x: 250, y: 320, radius: 28, type: "explosive" },
             { x: 550, y: 320, radius: 28, type: "explosive" },
-            { x: 400, y: 400, radius: 30, type: "multiplier" }
+            { x: 400, y: 400, radius: 30, type: "multiplier" },
+            // Extra temporal field items
+            { x: 200, y: 240, radius: 20, type: "temporal" },
+            { x: 600, y: 240, radius: 20, type: "temporal" }
         ],
         portals: [],
         boss: { name: "QUANTUM_CORE_ENTANGLER", hp: 3500, x: 400, y: 140 }
@@ -108,7 +120,10 @@ export const LEVEL_SECTORS = [
             { x: 280, y: 280, radius: 22, type: "shield", params: { health: 3 } },
             { x: 400, y: 280, radius: 22, type: "shield", params: { health: 3 } },
             { x: 520, y: 280, radius: 22, type: "shield", params: { health: 3 } },
-            { x: 400, y: 180, radius: 35, type: "magnetic" }
+            { x: 400, y: 180, radius: 35, type: "magnetic" },
+            // Symmetrical sub-bumpers
+            { x: 180, y: 200, radius: 20, type: "explosive" },
+            { x: 620, y: 200, radius: 20, type: "explosive" }
         ],
         portals: [],
         boss: { name: "BLACK_VIRUS_DECRYPTOR", hp: 5000, x: 400, y: 120 }
@@ -130,7 +145,9 @@ export const LEVEL_SECTORS = [
             { x: 550, y: 220, radius: 25, type: "explosive" },
             { x: 400, y: 300, radius: 32, type: "temporal" },
             { x: 300, y: 400, radius: 26, type: "magnetic" },
-            { x: 500, y: 400, radius: 26, type: "magnetic" }
+            { x: 500, y: 400, radius: 26, type: "magnetic" },
+            // Extra ultimate difficulty components
+            { x: 400, y: 180, radius: 22, type: "multiplier" }
         ],
         portals: [
             { x: 120, y: 180, targetX: 680, targetY: 480, label: "CORE_GATE_A" },
